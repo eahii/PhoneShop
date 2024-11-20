@@ -35,7 +35,6 @@
     /* Darker shade */
     --button-warning-color: #ffc107;
     --button-warning-hover-color: #e0a800;
-    /* Darker shade */
 }
 
 /* Dark Mode Overrides */
@@ -61,7 +60,6 @@
     /* Darker shade */
     --button-warning-color: #ffb74d;
     --button-warning-hover-color: #ff9933;
-    /* Darker shade */
 }
 
 /* Base Styles */
@@ -181,75 +179,76 @@ a:hover,
     box-shadow: 0 0 0 0.2rem rgba(27, 110, 194, 0.25);
 }
 
-.form-range {
-    width: 100%;
+/* Style for creator links */
+.top-row a {
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: 500;
 }
 
-/* Alerts */
-.alert {
-    padding: 0.75rem 1.25rem;
-    margin-top: 1rem;
-    border-radius: var(--border-radius);
-    transition: background-color 0.3s ease, color 0.3s ease;
+.top-row a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
 }
 
-.alert-info {
-    background-color: #d1ecf1;
-    color: #0c5460;
+/* Ensure links adapt to dark mode */
+.dark-mode .top-row a {
+    color: var(--link-color);
 }
 
-/* Tables */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
+.dark-mode .top-row a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
 }
 
-table th,
-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid #dee2e6;
+/* Ensure table text color adapts to dark mode */
+.dark-mode .table {
+    color: var(--text-color);
 }
 
-table th {
-    background-color: #f8f9fa;
-    cursor: pointer;
-    position: relative;
-    transition: background-color 0.3s ease;
-}
-
-table th:hover {
-    background-color: rgba(27, 110, 194, 0.1);
-}
-
-/* Icons */
-.bi {
-    width: 1.25rem;
-    height: 1.25rem;
-    display: inline-block;
-    background-size: cover;
-    margin-right: 0.5rem;
-}
-
-/* Cards */
-.card {
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.dark-mode .table th,
+.dark-mode .table td {
+    color: var(--text-color);
     background-color: var(--card-background);
-    border: none;
-    margin-bottom: 1.5rem;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.card-title {
-    font-size: 1.25rem;
-    margin-bottom: 0.75rem;
+/* Optional: Adjust table header background in dark mode */
+.dark-mode .table thead th {
+    background-color: var(--sidebar-active-background);
+    color: var(--sidebar-active-text-color);
 }
 
-.card-text {
-    font-size: 0.95rem;
-    color: var(--secondary-color);
+/* Container for forms and content */
+.container {
+    max-width: 800px;
+}
+
+/* Remove unnecessary margins */
+.page {
+    width: 100%;
+}
+
+/* Ensure main-content uses the full width minus sidebar */
+.main-content {
+    margin-left: 250px;
+    /* Match sidebar width */
+    padding: 1rem;
+    transition: margin-left 0.3s ease;
+    width: calc(100% - 250px);
+}
+
+@media (max-width: 640.98px) {
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+/* Optional: Adjust content padding if necessary */
+.content {
+    padding: 1rem;
+    overflow-y: auto;
+    flex: 1;
 }
 
 /* Loading Progress */
@@ -327,23 +326,6 @@ table th:hover {
 .main-content {
     margin-left: 250px;
     /* Same as sidebar width */
-    padding: 1rem;
-    transition: margin-left 0.3s ease;
-}
-
-/* For smaller screens, remove the margin */
-@media (max-width: 640.98px) {
-    .main-content {
-        margin-left: 0;
-    }
-}
-
-/* Define main content margin to accommodate fixed sidebar */
-.main-content {
-    margin-left: 250px;
-    /* Same as sidebar width */
-    padding: 1rem;
-    transition: margin-left 0.3s ease;
 }
 
 /* For smaller screens, remove the margin */
@@ -359,47 +341,4 @@ table th:hover {
     padding: 1rem;
     overflow-y: auto;
     flex: 1;
-}
-
-/* Ensure table text color adapts to dark mode */
-.dark-mode .table {
-    color: var(--text-color);
-}
-
-.dark-mode .table th,
-.dark-mode .table td {
-    color: var(--text-color);
-    background-color: var(--card-background);
-}
-
-/* Optional: Adjust table header background in dark mode */
-.dark-mode .table thead th {
-    background-color: var(--sidebar-active-background);
-    color: var(--sidebar-active-text-color);
-}
-
-/* frontend/wwwroot/css/app.css */
-
-/* Existing styles... */
-
-/* Style for creator links */
-.top-row a {
-    color: var(--link-color);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.top-row a:hover {
-    color: var(--link-hover-color);
-    text-decoration: underline;
-}
-
-/* Ensure links adapt to dark mode */
-.dark-mode .top-row a {
-    color: var(--link-color);
-}
-
-.dark-mode .top-row a:hover {
-    color: var(--link-hover-color);
-    text-decoration: underline;
 }

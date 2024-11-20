@@ -28,7 +28,7 @@
 
 /* Top Row Styling */
 .top-row {
-    background-color: #f7f7f7;
+    background-color: var(--navbar-background);
     border-bottom: 1px solid #d6d5d5;
     display: flex;
     align-items: center;
@@ -39,13 +39,21 @@
     position: sticky;
     top: 0;
     z-index: 1;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark Mode Styling for Top Row */
+.dark-mode .top-row {
+    background-color: var(--sidebar-background);
+    /* Dark background */
+    color: var(--text-color);
 }
 
 /* Creator Names Styling */
 .creator-names a {
     margin: 0 0.25rem;
     /* Adds minimal horizontal spacing between names */
-    color: var(--primary-color);
+    color: var(--link-color);
     text-decoration: none;
     font-weight: 500;
 }
@@ -90,6 +98,11 @@
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
+    }
+
+    .collapse {
+        /* Never collapse the sidebar for wide screens */
+        display: block !important;
     }
 
     .sidebar {
