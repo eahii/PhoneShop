@@ -1,0 +1,27 @@
+﻿@inherits LayoutComponentBase
+<PageTitle>Used Phones Web Shop</PageTitle>
+
+<div class="page">
+    <!-- Sidebar containing the navigation menu -->
+    <div class="sidebar">
+        <NavMenu /> <!-- Contains navigation links and Dark Mode toggle -->
+    </div>
+
+    <!-- Main content area -->
+    <main class="main-content">
+        <!-- Top row with creator information -->
+        <div class="top-row px-4">
+            Created by:
+            <span class="creator-names">
+                <a href="https://github.com/eahii" target="_blank">Juuso Patjas</a>,
+                <a href="https://github.com/SmoAhl" target="_blank">Simo Ahlqvist</a> and
+                <a href="#" target="_blank">Leevi Snellman</a>
+            </span>
+        </div>
+
+        <!-- Content section where individual pages are rendered -->
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>

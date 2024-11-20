@@ -1,0 +1,151 @@
+@page "/offer"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@using Shared.Models
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h3 class="text-center mb-4">Myy Puhelimesi!</h3>
+
+            <div class="offer-container">
+                <div class="mb-3">
+                    <label class="form-label" for="phoneBrand">Puhelimen merkki:</label>
+                    <input type="text" id="phoneBrand" class="form-control" @bind="phoneBrand" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="phoneModel">Puhelimen malli:</label>
+                    <input type="text" id="phoneModel" class="form-control" @bind="phoneModel" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="originalPrice">Alkuperäinen hinta (€):</label>
+                    <input type="number" id="originalPrice" class="form-control" min="0" @bind="originalPrice" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="phoneAge">Puhelimen Ikä (vuosina):</label>
+                    <input type="number" id="phoneAge" class="form-control" min="0" @bind="phoneAge" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="overallCondition">Yleinen Kunto: @overallCondition% </label>
+                    <input type="range" id="overallCondition" class="form-range" min="1" max="100" @bind="overallCondition"
+                        @bind:event="oninput" aria-valuemin="1" aria-valuemax="100" aria-valuenow="@overallCondition"
+                        aria-label="Yleinen Kunto" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="batteryLife">Akunkesto: @batteryLife% </label>
+                    <input type="range" id="batteryLife" class="form-range" min="1" max="100" @bind="batteryLife"
+                        @bind:event="oninput" aria-valuemin="1" aria-valuemax="100" aria-valuenow="@batteryLife"
+                        aria-label="Akunkesto" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="screenCondition">Näytön Kunto: @screenCondition% </label>
+                    <input type="range" id="screenCondition" class="form-range" min="1" max="100" @bind="screenCondition"
+                        @bind:event="oninput" aria-valuemin="1" aria-valuemax="100" aria-valuenow="@screenCondition"
+                        aria-label="Näytön Kunto" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="cameraCondition">Kameran Kunto: @cameraCondition% </label>
+                    <input type="range" id="cameraCondition" class="form-range" min="1" max="100" @bind="cameraCondition"
+                        @bind:event="oninput" aria-valuemin="1" aria-valuemax="100" aria-valuenow="@cameraCondition"
+                        aria-label="Kameran Kunto" />
+                </div>
+
+                <div class="mb-3 text-center">
+                    <button class="btn btn-primary" @onclick="CalculateResellValue">Laske Arvio</button>
+                </div>
+
+                @if (resellValue.HasValue)
+                {
+                    <div class="alert alert-info text-center">
+                        <strong>Arvioitu myyntihinta:</strong> @resellValue.Value.ToString("C2")
+                    </div>
+                }
+
+                <div class="mb-3 text-center">
+                    <button class="btn btn-success" @onclick="SubmitOffer">Lähetä Arvio</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string phoneBrand = "";
+    private string phoneModel = "";
+    private decimal originalPrice = 0;
+    private int phoneAge = 0;
+    private int overallCondition = 100;
+    private int batteryLife = 100;
+    private int screenCondition = 100;
+    private int cameraCondition = 100;
+    private decimal? resellValue;
+
+    private void CalculateResellValue()
+    {
+        // Esimerkkiarviointilogiikka
+        resellValue = originalPrice * 0.7m
+            - (phoneAge * 20)
+            - (100 - overallCondition)
+            - (100 - batteryLife)
+            - (100 - screenCondition)
+            - (100 - cameraCondition);
+        if (resellValue < 0) resellValue = 0;
+    }
+
+    private async Task SubmitOffer()
+    {
+        var offer = new OfferModel
+        {
+            PhoneBrand = phoneBrand,
+            PhoneModel = phoneModel,
+            OriginalPrice = originalPrice,
+            PhoneAge = phoneAge,
+            OverallCondition = overallCondition,
+            BatteryLife = batteryLife,
+            ScreenCondition = screenCondition,
+            CameraCondition = cameraCondition,
+            Status = "Pending",
+            SubmissionDate = DateTime.UtcNow
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/offers", offer);
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Arviosi lähetettiin vahvistettavaksi!");
+                // Tyhjennä lomake tarvittaessa
+                ClearForm();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                await JSRuntime.InvokeVoidAsync("alert", $"Virhe arvioita lähetettäessä: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Virhe arvioita lähetettäessä: {ex.Message}");
+        }
+    }
+
+    private void ClearForm()
+    {
+        phoneBrand = "";
+        phoneModel = "";
+        originalPrice = 0;
+        phoneAge = 0;
+        overallCondition = 100;
+        batteryLife = 100;
+        screenCondition = 100;
+        cameraCondition = 100;
+        resellValue = null;
+    }
+}

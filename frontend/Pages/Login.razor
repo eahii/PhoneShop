@@ -1,0 +1,69 @@
+@page "/login"
+@inject HttpClient Http
+@using Shared.Models
+@using System.Net.Http.Json
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h3 class="text-center mb-4">Kirjaudu Sisään</h3>
+
+            <EditForm Model="userCredentials" OnValidSubmit="LoginUser">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label" for="email">Sähköposti:</label>
+                    <InputText id="email" class="form-control" @bind-Value="userCredentials.Email" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="password">Salasana:</label>
+                    <InputText id="password" type="password" class="form-control"
+                        @bind-Value="userCredentials.PasswordHash" />
+                </div>
+                <div class="mb-3 text-center">
+                    <button type="submit" class="btn btn-primary">Kirjaudu</button>
+                </div>
+            </EditForm>
+
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <div class="alert @(IsSuccess ? "alert-success" : "alert-danger")" role="alert">
+                    @Message
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Using UserModel as per backend expectations
+    private UserModel userCredentials = new UserModel();
+    private string Message { get; set; } = string.Empty;
+    private bool IsSuccess { get; set; } = false;
+
+    private async Task LoginUser()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/auth/login", userCredentials);
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Kirjautuminen onnistui!";
+                IsSuccess = true;
+                // Optionally, redirect to home or dashboard
+                // NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                Message = "Kirjautuminen epäonnistui. Tarkista sähköposti ja salasana.";
+                IsSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Virhe kirjautuessa: {ex.Message}";
+            IsSuccess = false;
+        }
+    }
+}
