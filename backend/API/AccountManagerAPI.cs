@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Data.Sqlite;
 using Shared.Models;
@@ -15,18 +16,17 @@ namespace Backend.Api
         /// </summary>
         public static void MapAccountManagerApi(this WebApplication app)
         {
-            app.MapPost("/api/auth/register", RegisterUser);
-            app.MapGet("/api/auth/users", GetAllUsers);
-            app.MapDelete("/api/auth/users/{id}", DeleteUser);
-            app.MapPut("/api/auth/updateuser/{id}", UpdateUser);
+            var group = app.MapGroup("/api/auth");
+            group.MapPost("/register", RegisterUser);
+            group.MapGet("/users", GetAllUsers).RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
+            group.MapDelete("/users/{id}", DeleteUser).RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
+            group.MapPut("/updateuser/{id}", UpdateUser).RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
         }
 
         /// <summary>
         /// Registers a new user.
         /// </summary>
-        /// <param name="user">The user model.</param>
-        /// <returns>The registration result.</returns>
-        public static async Task<IResult> RegisterUser(UserModel user)
+        public static async Task<IResult> RegisterUser(RegisterRequest registerRequest)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace Backend.Api
 
                     var checkUserCommand = connection.CreateCommand();
                     checkUserCommand.CommandText = "SELECT COUNT(1) FROM Users WHERE Email = @Email";
-                    checkUserCommand.Parameters.AddWithValue("@Email", user.Email);
+                    checkUserCommand.Parameters.AddWithValue("@Email", registerRequest.Email);
 
                     var exists = Convert.ToInt32(await checkUserCommand.ExecuteScalarAsync()) > 0;
                     if (exists)
@@ -44,19 +44,19 @@ namespace Backend.Api
                         return Results.BadRequest(new { Error = "Käyttäjä on jo olemassa." });
                     }
 
-                    user.PasswordHash = HashPassword(user.PasswordHash);
+                    var passwordHash = HashPassword(registerRequest.Password);
 
                     var command = connection.CreateCommand();
                     command.CommandText = @"
                         INSERT INTO Users (Email, Role, PasswordHash, FirstName, LastName, Address, PhoneNumber, CreatedDate)
                         VALUES (@Email, @Role, @PasswordHash, @FirstName, @LastName, @Address, @PhoneNumber, CURRENT_TIMESTAMP)";
-                    command.Parameters.AddWithValue("@Email", user.Email);
-                    command.Parameters.AddWithValue("@Role", user.Role);
-                    command.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
-                    command.Parameters.AddWithValue("@FirstName", user.FirstName);
-                    command.Parameters.AddWithValue("@LastName", user.LastName);
-                    command.Parameters.AddWithValue("@Address", user.Address);
-                    command.Parameters.AddWithValue("@PhoneNumber", user.PhoneNumber);
+                    command.Parameters.AddWithValue("@Email", registerRequest.Email);
+                    command.Parameters.AddWithValue("@Role", registerRequest.Role);
+                    command.Parameters.AddWithValue("@PasswordHash", passwordHash);
+                    command.Parameters.AddWithValue("@FirstName", registerRequest.FirstName ?? string.Empty);
+                    command.Parameters.AddWithValue("@LastName", registerRequest.LastName ?? string.Empty);
+                    command.Parameters.AddWithValue("@Address", registerRequest.Address ?? string.Empty);
+                    command.Parameters.AddWithValue("@PhoneNumber", registerRequest.PhoneNumber ?? string.Empty);
 
                     await command.ExecuteNonQueryAsync();
                 }
@@ -72,7 +72,7 @@ namespace Backend.Api
         /// <summary>
         /// Gets all users.
         /// </summary>
-        /// <returns>The list of users.</returns>
+        [Authorize(Roles = "Admin")]
         public static async Task<IResult> GetAllUsers()
         {
             try
@@ -94,11 +94,11 @@ namespace Backend.Api
                                 UserID = reader.GetInt32(0),
                                 Email = reader.GetString(1),
                                 Role = reader.GetString(2),
-                                FirstName = reader.GetString(3),
-                                LastName = reader.GetString(4),
-                                Address = reader.GetString(5),
-                                PhoneNumber = reader.GetString(6),
-                                CreatedDate = reader.GetDateTime(7)
+                                FirstName = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                LastName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                                Address = reader.IsDBNull(5) ? null : reader.GetString(5),
+                                PhoneNumber = reader.IsDBNull(6) ? null : reader.GetString(6),
+                                CreatedDate = reader.IsDBNull(7) ? (DateTime?)null : reader.GetDateTime(7)
                             });
                         }
                     }
@@ -113,24 +113,18 @@ namespace Backend.Api
         }
 
         /// <summary>
-        /// Updates a user by ID.
+        /// Updates an existing user.
         /// </summary>
-        /// <param name="id">The ID of the user.</param>
-        /// <param name="updatedUser">The updated user model.</param>
-        /// <returns>The update result.</returns>
-        public static async Task<IResult> UpdateUser(int id, UpdateUserModel updatedUser)
+        [Authorize(Roles = "Admin")]
+        public static async Task<IResult> UpdateUser(int id, UpdateUserRequest updateRequest)
         {
-            if (updatedUser == null)
-            {
-                return Results.BadRequest("Päivityspyyntö on virheellinen.");
-            }
-
             try
             {
                 using (var connection = new SqliteConnection("Data Source=UsedPhonesShop.db"))
                 {
                     await connection.OpenAsync();
 
+                    // Retrieve existing user
                     var command = connection.CreateCommand();
                     command.CommandText = "SELECT UserID, Email, Role, PasswordHash, FirstName, LastName, Address, PhoneNumber FROM Users WHERE UserID = @UserID";
                     command.Parameters.AddWithValue("@UserID", id);
@@ -147,33 +141,40 @@ namespace Backend.Api
                         Email = reader.GetString(1),
                         Role = reader.GetString(2),
                         PasswordHash = reader.GetString(3),
-                        FirstName = reader.GetString(4),
-                        LastName = reader.GetString(5),
-                        Address = reader.GetString(6),
-                        PhoneNumber = reader.GetString(7)
+                        FirstName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        LastName = reader.IsDBNull(5) ? null : reader.GetString(5),
+                        Address = reader.IsDBNull(6) ? null : reader.GetString(6),
+                        PhoneNumber = reader.IsDBNull(7) ? null : reader.GetString(7)
                     };
 
-                    user.Email = updatedUser.Email ?? user.Email;
-                    user.Role = updatedUser.Role ?? user.Role;
-                    user.PasswordHash = updatedUser.PasswordHash != null ? HashPassword(updatedUser.PasswordHash) : user.PasswordHash;
-                    user.FirstName = updatedUser.FirstName ?? user.FirstName;
-                    user.LastName = updatedUser.LastName ?? user.LastName;
-                    user.Address = updatedUser.Address ?? user.Address;
-                    user.PhoneNumber = updatedUser.PhoneNumber ?? user.PhoneNumber;
+                    // Update fields if provided
+                    user.Email = updateRequest.Email ?? user.Email;
+                    user.Role = updateRequest.Role ?? user.Role;
+                    user.PasswordHash = !string.IsNullOrEmpty(updateRequest.Password) ? HashPassword(updateRequest.Password) : user.PasswordHash;
+                    user.FirstName = updateRequest.FirstName ?? user.FirstName;
+                    user.LastName = updateRequest.LastName ?? user.LastName;
+                    user.Address = updateRequest.Address ?? user.Address;
+                    user.PhoneNumber = updateRequest.PhoneNumber ?? user.PhoneNumber;
 
+                    // Update the user in the database
                     command = connection.CreateCommand();
                     command.CommandText = @"
-                    UPDATE Users
-                    SET Email = @Email, Role = @Role, PasswordHash = @PasswordHash, FirstName = @FirstName, LastName = @LastName, Address = @Address, PhoneNumber = @PhoneNumber
-                    WHERE UserID = @UserID";
-
+                        UPDATE Users
+                        SET Email = @Email,
+                            Role = @Role,
+                            PasswordHash = @PasswordHash,
+                            FirstName = @FirstName,
+                            LastName = @LastName,
+                            Address = @Address,
+                            PhoneNumber = @PhoneNumber
+                        WHERE UserID = @UserID";
                     command.Parameters.AddWithValue("@Email", user.Email);
                     command.Parameters.AddWithValue("@Role", user.Role);
                     command.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
-                    command.Parameters.AddWithValue("@FirstName", user.FirstName);
-                    command.Parameters.AddWithValue("@LastName", user.LastName);
-                    command.Parameters.AddWithValue("@Address", user.Address);
-                    command.Parameters.AddWithValue("@PhoneNumber", user.PhoneNumber);
+                    command.Parameters.AddWithValue("@FirstName", user.FirstName ?? string.Empty);
+                    command.Parameters.AddWithValue("@LastName", user.LastName ?? string.Empty);
+                    command.Parameters.AddWithValue("@Address", user.Address ?? string.Empty);
+                    command.Parameters.AddWithValue("@PhoneNumber", user.PhoneNumber ?? string.Empty);
                     command.Parameters.AddWithValue("@UserID", id);
 
                     await command.ExecuteNonQueryAsync();
@@ -189,8 +190,7 @@ namespace Backend.Api
         /// <summary>
         /// Deletes a user by ID.
         /// </summary>
-        /// <param name="id">The ID of the user.</param>
-        /// <returns>The result of the deletion.</returns>
+        [Authorize(Roles = "Admin")]
         public static async Task<IResult> DeleteUser(int id)
         {
             try
@@ -219,10 +219,9 @@ namespace Backend.Api
         }
 
         /// <summary>
-        /// Hashes a password.
+        /// Hashes a password using SHA256.
+        /// Note: For enhanced security, consider using stronger hashing algorithms like BCrypt or Argon2.
         /// </summary>
-        /// <param name="password">The password to hash.</param>
-        /// <returns>The hashed password.</returns>
         private static string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();

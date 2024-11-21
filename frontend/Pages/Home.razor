@@ -1,5 +1,46 @@
 ﻿@page "/"
+@using Shared.Models
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 
-<h3>Home</h3>
+<AuthorizeView>
+    <Authorized>
+        <h3>You're logged in</h3>
+        @if (currentUser != null)
+        {
+            <p><strong>First Name:</strong> @currentUser.FirstName</p>
+            <p><strong>Last Name:</strong> @currentUser.LastName</p>
+            <p><strong>Role:</strong> @currentUser.Role</p>
+        }
+        else
+        {
+            <p>Loading user information...</p>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <h3>You're not logged in</h3>
+        <div class="mt-3">
+            <button class="btn btn-primary me-2" @onclick="NavigateToLogin">Login</button>
+            <button class="btn btn-secondary" @onclick="NavigateToRegister">Register</button>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
-<p>Welcome to the Used Phones Web Shop!</p>
+@code {
+    private UserModel? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUser();
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+
+    private void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("/register");
+    }
+}

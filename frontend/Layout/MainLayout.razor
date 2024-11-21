@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 <PageTitle>Used Phones Web Shop</PageTitle>
 
 <div class="page">
@@ -18,6 +22,24 @@
                 <a href="#" target="_blank">Leevi Snellman</a>
             </span>
         </div>
+
+        <!-- User Information -->
+        <AuthorizeView>
+            <Authorized Context="authContext">
+                <div class="user-info px-4">
+                    <p>
+                        <strong>Welcome, @authContext.User.Identity.Name!</strong>
+                    </p>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="user-info px-4">
+                    <p>
+                        <strong>Welcome, Guest!</strong>
+                    </p>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
 
         <!-- Content section where individual pages are rendered -->
         <article class="content px-4">

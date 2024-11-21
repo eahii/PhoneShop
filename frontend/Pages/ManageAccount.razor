@@ -2,13 +2,17 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @using Shared.Models
-@using System.Net.Http.Json
 
-<h3>Käyttäjätilien Hallinta</h3>
+<h3>Manage Accounts</h3>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
+@if (users == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
             <tr>
                 <th>Email</th>
                 <th>Rooli</th>
@@ -30,73 +34,63 @@
                     <td>@user.Address</td>
                     <td>@user.PhoneNumber</td>
                     <td>
-                        <button class="btn btn-primary btn-sm me-2" @onclick="() => EditUser(user)">
-                            <span class="bi bi-pencil-fill"></span> Muokkaa
-                        </button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteUser(user.UserID)">
-                            <span class="bi bi-trash-fill"></span> Poista
-                        </button>
+                        <button class="btn btn-sm btn-primary me-2" @onclick="() => EditUser(user)">Muokkaa</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteUser(user.UserID)">Poista</button>
                     </td>
                 </tr>
             }
         </tbody>
     </table>
-</div>
+}
 
-<!-- Edit User Modal -->
 @if (isEditing)
 {
-    <div class="modal show d-block" tabindex="-1" aria-modal="true" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Muokkaa Käyttäjää</h5>
-                    <button type="button" class="btn-close" aria-label="Close" @onclick="CancelEdit"></button>
-                </div>
-                <div class="modal-body">
-                    <EditForm Model="editingUser" OnValidSubmit="UpdateUser">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
+    <div class="modal">
+        <div class="modal-content">
+            <h4>Muokkaa Käyttäjää</h4>
+            <EditForm Model="editingUser" OnValidSubmit="UpdateUser">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
 
-                        <div class="mb-3">
-                            <label class="form-label">Email:</label>
-                            <InputText class="form-control" @bind-Value="editingUser.Email" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Rooli:</label>
-                            <InputText class="form-control" @bind-Value="editingUser.Role" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Etunimi:</label>
-                            <InputText class="form-control" @bind-Value="editingUser.FirstName" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Sukunimi:</label>
-                            <InputText class="form-control" @bind-Value="editingUser.LastName" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Osoite:</label>
-                            <InputText class="form-control" @bind-Value="editingUser.Address" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Puhelinnumero:</label>
-                            <InputText class="form-control" @bind-Value="editingUser.PhoneNumber" />
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Peruuta</button>
-                            <button type="submit" class="btn btn-primary">Päivitä</button>
-                        </div>
-                    </EditForm>
+                <div class="mb-3">
+                    <label class="form-label">Email:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.Email" />
                 </div>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Rooli:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.Role" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Etunimi:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.FirstName" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sukunimi:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.LastName" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Osoite:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.Address" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Puhelinnumero:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.PhoneNumber" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Salasana:</label>
+                    <InputText class="form-control" @bind-Value="editingUser.Password" type="password"
+                        placeholder="Uusi salasana (jätä tyhjäksi, jos ei muutosta)" />
+                </div>
+                <button type="submit" class="btn btn-success me-2">Päivitä</button>
+                <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Peruuta</button>
+            </EditForm>
         </div>
     </div>
 }
 
 @code {
-    private List<UserModel> users = new();
-    private UserModel editingUser = new();
+    private List<UserModel>? users;
+    private UserModel? editingUser;
     private bool isEditing = false;
 
     protected override async Task OnInitializedAsync()
@@ -106,41 +100,7 @@
 
     private async Task LoadUsers()
     {
-        try
-        {
-            users = await Http.GetFromJsonAsync<List<UserModel>>("/api/auth/users");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Virhe käyttäjien lataamisessa: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Virhe käyttäjien lataamisessa: {ex.Message}");
-        }
-    }
-
-    private async Task DeleteUser(int userId)
-    {
-        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", "Haluatko varmasti poistaa tämän käyttäjän?");
-        if (!confirm)
-            return;
-
-        try
-        {
-            var response = await Http.DeleteAsync($"/api/auth/users/{userId}");
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadUsers();
-                await JSRuntime.InvokeVoidAsync("alert", "Käyttäjä poistettu onnistuneesti.");
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "Käyttäjän poistaminen epäonnistui.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Virhe käyttäjän poistamisessa: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Virhe käyttäjän poistamisessa: {ex.Message}");
-        }
+        users = await Http.GetFromJsonAsync<List<UserModel>>("/api/auth/users");
     }
 
     private void EditUser(UserModel user)
@@ -177,17 +137,38 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Virhe käyttäjän päivittämisessä: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Virhe käyttäjän päivittämisessä: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Virhe: {ex.Message}");
         }
-        finally
+    }
+
+    private async Task DeleteUser(int userId)
+    {
+        try
         {
-            isEditing = false; // Hide the editing fields
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Haluatko varmasti poistaa tämän käyttäjän?");
+            if (confirmed)
+            {
+                var response = await Http.DeleteAsync($"/api/auth/users/{userId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    await LoadUsers();
+                    await JSRuntime.InvokeVoidAsync("alert", "Käyttäjä poistettu onnistuneesti.");
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Käyttäjän poistaminen epäonnistui.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Virhe: {ex.Message}");
         }
     }
 
     private void CancelEdit()
     {
-        isEditing = false; // Hide the editing fields
+        isEditing = false;
+        editingUser = null;
     }
 }

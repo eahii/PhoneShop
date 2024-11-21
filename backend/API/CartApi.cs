@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Data.Sqlite;
 using Shared.Models;
 using System.Text.Json;
+using System.Security.Claims;
 
 namespace Backend.Api
 {
@@ -17,8 +18,12 @@ namespace Backend.Api
 
         private static async Task<IResult> GetCart(HttpContext context)
         {
-            // TODO: Get actual user ID from authentication
-            int userId = 1; // Temporary hardcoded user ID
+            // Replace hardcoded userId with actual user ID from claims
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Results.Unauthorized();
+            }
 
             try
             {
@@ -79,8 +84,12 @@ namespace Backend.Api
 
         private static async Task<IResult> AddToCart(CartItemModel cartItem, HttpContext context)
         {
-            // TODO: Get actual user ID from authentication
-            int userId = 1; // Temporary hardcoded user ID
+            // Replace hardcoded userId with actual user ID from claims
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Results.Unauthorized();
+            }
 
             try
             {
