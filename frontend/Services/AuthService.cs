@@ -1,34 +1,29 @@
-using Shared.Models;
+// PhoneShop/frontend/Services/AuthService.cs
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Components.Authorization;
-using frontend.Authentication;
+using System.Threading.Tasks;
 using Blazored.LocalStorage;
-using System.Net.Http.Headers;
+using frontend.Authentication;
+using Microsoft.AspNetCore.Components.Authorization;
+using Shared.DTOs;
+using Shared.Models;
 
 namespace frontend.Services
 {
     public class AuthService
     {
         private readonly HttpClient _httpClient;
-        private readonly AuthenticationStateProvider _authenticationStateProvider;
         private readonly ILocalStorageService _localStorage;
+        private readonly CustomAuthenticationStateProvider _authenticationStateProvider;
 
-        public AuthService(HttpClient httpClient, AuthenticationStateProvider authenticationStateProvider, ILocalStorageService localStorage)
+        public AuthService(HttpClient httpClient, ILocalStorageService localStorage, AuthenticationStateProvider authenticationStateProvider)
         {
             _httpClient = httpClient;
-            _authenticationStateProvider = authenticationStateProvider;
             _localStorage = localStorage;
+            _authenticationStateProvider = (CustomAuthenticationStateProvider)authenticationStateProvider;
         }
 
-        public async Task<bool> Login(UserModel user)
+        public async Task<bool> Login(LoginRequest loginData)
         {
-            // Create a separate object to send only Email and Password
-            var loginData = new
-            {
-                Email = user.Email,
-                Password = user.Password
-            };
-
             var response = await _httpClient.PostAsJsonAsync("/api/auth/login", loginData);
             if (response.IsSuccessStatusCode)
             {
@@ -36,8 +31,7 @@ namespace frontend.Services
                 if (result != null && !string.IsNullOrEmpty(result.Token))
                 {
                     await _localStorage.SetItemAsync("authToken", result.Token);
-                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.Token);
-                    ((CustomAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsAuthenticated(result.Token);
+                    _authenticationStateProvider.MarkUserAsAuthenticated(result.Token);
                     return true;
                 }
             }
@@ -47,24 +41,17 @@ namespace frontend.Services
         public async Task Logout()
         {
             await _localStorage.RemoveItemAsync("authToken");
-            _httpClient.DefaultRequestHeaders.Authorization = null;
-            ((CustomAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsLoggedOut();
+            _authenticationStateProvider.MarkUserAsLoggedOut();
         }
 
-        public async Task<UserModel?> GetCurrentUser()
+        public async Task<UserDto?> GetCurrentUser()
         {
             var response = await _httpClient.GetAsync("/api/auth/currentuser");
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<UserModel>();
+                return await response.Content.ReadFromJsonAsync<UserDto>();
             }
             return null;
         }
-    }
-
-    public class LoginResult
-    {
-        public string Token { get; set; }
-        public DateTime? Expiration { get; set; }
     }
 }

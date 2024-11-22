@@ -1,3 +1,4 @@
+<!-- PhoneShop/frontend/Pages/Login.razor -->
 @page "/login"
 @inject AuthService AuthService
 @inject NavigationManager NavigationManager
@@ -44,11 +45,7 @@
 
     private async Task HandleLogin()
     {
-        bool success = await AuthService.Login(new UserModel
-            {
-                Email = loginRequest.Email,
-                Password = loginRequest.Password
-            });
+        bool success = await AuthService.Login(loginRequest);
         if (success)
         {
             Message = "Kirjautuminen onnistui!";
@@ -60,11 +57,5 @@
             Message = "Kirjautuminen epäonnistui. Tarkista sähköposti ja salasana.";
             IsSuccess = false;
         }
-    }
-
-    private class LoginRequest
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
     }
 }

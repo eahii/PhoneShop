@@ -1,5 +1,6 @@
-﻿@page "/"
-@using Shared.Models
+﻿<!-- PhoneShop/frontend/Pages/Home.razor -->
+@page "/"
+@using Shared.DTOs
 @inject AuthService AuthService
 @inject NavigationManager NavigationManager
 
@@ -8,9 +9,16 @@
         <h3>You're logged in</h3>
         @if (currentUser != null)
         {
-            <p><strong>First Name:</strong> @currentUser.FirstName</p>
-            <p><strong>Last Name:</strong> @currentUser.LastName</p>
-            <p><strong>Role:</strong> @currentUser.Role</p>
+            <div class="user-info">
+                <p><strong>First Name:</strong> @currentUser.FirstName</p>
+                <p><strong>Last Name:</strong> @currentUser.LastName</p>
+                <p>
+                    <strong>Role:</strong>
+                    <span class="badge @(currentUser.Role.ToLower() == "admin" ? "bg-danger" : "bg-secondary")">
+                        @currentUser.Role
+                    </span>
+                </p>
+            </div>
         }
         else
         {
@@ -27,7 +35,7 @@
 </AuthorizeView>
 
 @code {
-    private UserModel? currentUser;
+    private UserDto? currentUser;
 
     protected override async Task OnInitializedAsync()
     {

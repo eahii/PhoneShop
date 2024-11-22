@@ -1,9 +1,9 @@
+// PhoneShop/frontend/Authentication/CustomAuthenticationStateProvider.cs
 using Microsoft.AspNetCore.Components.Authorization;
-using System.Net.Http.Json;
-using Shared.Models;
 using System.Security.Claims;
-using Blazored.LocalStorage;
 using System.IdentityModel.Tokens.Jwt;
+using Blazored.LocalStorage;
+using System.Threading.Tasks;
 using System.Linq;
 
 namespace frontend.Authentication
@@ -11,12 +11,10 @@ namespace frontend.Authentication
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly ILocalStorageService _localStorage;
-        private readonly HttpClient _httpClient;
 
-        public CustomAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient)
+        public CustomAuthenticationStateProvider(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
-            _httpClient = httpClient;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -44,7 +42,7 @@ namespace frontend.Authentication
             }
             catch
             {
-                // If token is invalid or parsing fails, return unauthenticated state
+                // If token is invalid or parsing fails, mark as logged out
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
         }
@@ -53,20 +51,15 @@ namespace frontend.Authentication
         {
             try
             {
-                // Parse the JWT token to extract claims
                 var handler = new JwtSecurityTokenHandler();
                 var jwtToken = handler.ReadJwtToken(token);
-
                 var claims = jwtToken.Claims.ToList();
-
                 var identity = new ClaimsIdentity(claims, "Bearer");
                 var user = new ClaimsPrincipal(identity);
-
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
             }
             catch
             {
-                // If token is invalid or parsing fails, mark as logged out
                 MarkUserAsLoggedOut();
             }
         }

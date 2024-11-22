@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Shared.DTOs;
 
 namespace Backend.Api
 {
@@ -128,50 +129,44 @@ namespace Backend.Api
         private static async Task<IResult> GetCurrentUser(HttpContext context)
         {
             var user = context.User;
-            if (user?.Identity?.IsAuthenticated ?? false)
+            if (user.Identity == null || !user.Identity.IsAuthenticated)
             {
-                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-                var emailClaim = user.FindFirst(ClaimTypes.Email);
-                var roleClaim = user.FindFirst(ClaimTypes.Role);
+                return Results.Unauthorized();
+            }
 
-                if (userIdClaim == null || emailClaim == null || roleClaim == null)
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                return Results.Unauthorized();
+            }
+
+            int userId = int.Parse(userIdClaim.Value);
+
+            // Fetch user details from database
+            using var connection = new SqliteConnection("Data Source=users.db");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+            command.CommandText = "SELECT UserID, Email, Role, FirstName, LastName, Address, PhoneNumber FROM Users WHERE UserID = $id";
+            command.Parameters.AddWithValue("$id", userId);
+
+            using var reader = await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                var userModel = new UserModel
                 {
-                    return Results.Unauthorized();
-                }
-
-                int userId = int.Parse(userIdClaim.Value);
-                string email = emailClaim.Value;
-                string role = roleClaim.Value;
-
-                // Retrieve additional user details from the database
-                using var connection = new SqliteConnection("Data Source=UsedPhonesShop.db");
-                await connection.OpenAsync();
-
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT FirstName, LastName FROM Users WHERE UserID = @UserID";
-                command.Parameters.AddWithValue("@UserID", userId);
-
-                using var reader = await command.ExecuteReaderAsync();
-
-                string firstName = string.Empty;
-                string lastName = string.Empty;
-
-                if (await reader.ReadAsync())
-                {
-                    firstName = reader.GetString(0);
-                    lastName = reader.GetString(1);
-                }
-
-                var currentUser = new UserModel
-                {
-                    UserID = userId,
-                    Email = email,
-                    Role = role,
-                    FirstName = firstName,
-                    LastName = lastName
+                    UserID = reader.GetInt32(reader.GetOrdinal("UserID")),
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Role = reader.GetString(reader.GetOrdinal("Role")),
+                    FirstName = reader.IsDBNull(reader.GetOrdinal("FirstName")) ? null : reader.GetString(reader.GetOrdinal("FirstName")),
+                    LastName = reader.IsDBNull(reader.GetOrdinal("LastName")) ? null : reader.GetString(reader.GetOrdinal("LastName")),
+                    Address = reader.IsDBNull(reader.GetOrdinal("Address")) ? null : reader.GetString(reader.GetOrdinal("Address")),
+                    PhoneNumber = reader.IsDBNull(reader.GetOrdinal("PhoneNumber")) ? null : reader.GetString(reader.GetOrdinal("PhoneNumber")),
+                    // Populate other fields as necessary
                 };
 
-                return Results.Ok(currentUser);
+                return Results.Ok(userModel);
             }
 
             return Results.Unauthorized();
